@@ -37,7 +37,7 @@
             return posts
         }
         async function getPost(path) {
-            const content = await fetch('posts/' + path,
+            const content = await fetch('posts/' + path, {
                 mode: 'cors'
             })
                 .then(r => console.log(r.text()))
