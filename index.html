@@ -3,11 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <title>BOOKS</title>
+    <link rel="stylesheet" href="https://assets.ubuntu.com/v1/vanilla-framework-version-2.4.1.min.css" />
 </head>
 <body>
     <div id="app">
-        <router-view></router-view>
+        <div class="p-strip">
+            <header class="row">
+                <h1 class="title">BOOKS</h1>
+                <p class="desc">theoremoonの読んだ本を記録しています。たぶんね</p>
+            </header>
+            <main class="row">
+                <router-view></router-view>
+            </main>
+        </div>
     </div>
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-79565060-4"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-79565060-4');
+</script>
+
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
     <script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/showdown/dist/showdown.min.js"></script>
@@ -18,34 +38,42 @@
         const POSTS = 'posts';
 
         async function getPostList() {
-            const tree_url = await fetch('//api.github.com/repos/' +  OWNER + '/' + REPO + '/branches/master', {
+            const tree = await fetch('https://api.github.com/repos/' + OWNER + '/' + REPO + '/contents/' + POSTS, {
                 mode: 'cors'
             })
                 .then(r => r.json())
-                .then(j => j.commit.commit.tree.url)
-            const files = await fetch(tree_url, {
-                mode: 'cors',
-            })
-                .then(r => r.json())
-                .then(j => j.tree)
-            const posts_dir = files.filter(f => f.path == POSTS)[0];
-            const posts = await fetch(posts_dir.url, {
-                mode: 'cors',
-            })
-                .then(r => r.json())
-                .then(j => j.tree)
-            return posts
+            return tree
         }
         async function getPost(path) {
-            const content = await fetch('posts/' + path, {
+            const content = await fetch('https://' + OWNER + '.github.io/'+REPO+'/' +POSTS + '/' + path, {
                 mode: 'cors'
             })
-                .then(r => console.log(r.text()))
-
+                .then(r => r.text())
+            return content;
         }
         Vue.use(VueRouter);
         let vue = new Vue({
             el: '#app',
+            data() {
+                return {
+                    posts: [],
+                }
+            },
+            created() {
+                getPostList().then(posts => {
+                    this.posts = posts.sort(function(a, b) {
+                                    let x = a.name.split("_");
+                                    x[1] = x[1].substring(0, 2);
+
+                                    let y = b.name.split("_");
+                                    y[1] = y[1].substring(0, 2);
+
+                                    let d1 = new Date(x[0], x[1]);
+                                    let d2 = new Date(y[0], y[1]);
+                                    return (d1 < d2) ? 1 : -1;
+                                })
+                })
+            },
             router: new VueRouter({
                 routes: [
                     {
@@ -65,8 +93,8 @@
                             },
                             template: `
                                 <div>
-                                    <p>{{post}}</p>
-                                    <div v-html="html"></div>
+                                    <div v-html="html" class="post"></div>
+                                    <router-link to="/">Back</router-link>
                                 </div>
                             `,
                         }),
@@ -74,19 +102,9 @@
                     {
                         path: '*',
                         component: Vue.component('index', {
-                            data() {
-                                return {
-                                    posts: [],
-                                }
-                            },
-                            mounted() {
-                                getPostList().then(posts => {
-                                    this.posts = posts
-                                })
-                            },
                             template: `
                                 <ul>
-                                    <li v-for="p in posts"><router-link :to="'/post/' + p.path">{{p.path}}</router-link></li>
+                                    <li v-for="p in $parent.posts"><router-link :to="'/post/' + p.name">{{p.name}}</router-link></li>
                                 </ul>
                             `,
                         }),
