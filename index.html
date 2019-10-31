@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>BOOKS</title>
+</head>
+<body>
+    <div id="app">
+        <router-view></router-view>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/showdown/dist/showdown.min.js"></script>
+
+    <script>
+        async function getPostList() {
+            const tree_url = await fetch('//api.github.com/repos/theoremoon/SATySFi-Online/branches/master', {
+                mode: 'cors'
+            })
+                .then(r => r.json())
+                .then(j => j.commit.commit.tree.url)
+            const files = await fetch(tree_url, {
+                mode: 'cors',
+            })
+                .then(r => r.json())
+                .then(j => j.tree)
+            const posts_dir = files.filter(f => f.path == "SATySFi")[0];
+            const posts = await fetch(posts_dir.url, {
+                mode: 'cors',
+            })
+                .then(r => r.json())
+                .then(j => j.tree)
+            return posts
+        }
+        Vue.use(VueRouter);
+        let vue = new Vue({
+            el: '#app',
+            router: new VueRouter({
+                routes: [
+                    {
+                        path: '/post/:post',
+                        component: Vue.component('post', {
+                            mounted() {
+                                this.post = this.$route.params.post
+                                this.html = new showdown.Converter().makeHtml(`
+# HELLO
+content
+                                    `);
+                            },
+                            data() {
+                                return {
+                                    html: '',
+                                    post: '',
+                                }
+                            },
+                            template: `
+                                <div>
+                                    <p>{{post}}</p>
+                                    <div v-html="html"></div>
+                                </div>
+                            `,
+                        }),
+                    },
+                    {
+                        path: '*',
+                        component: Vue.component('index', {
+                            data() {
+                                return {
+                                    posts: [],
+                                }
+                            },
+                            mounted() {
+                                getPostList().then(posts => {
+                                    this.posts = posts
+                                })
+                            },
+                            template: `
+                                <ul>
+                                    <li v-for="p in posts"><router-link :to="'/post/' + p.path">{{p.path}}</router-link></li>
+                                </ul>
+                            `,
+                        }),
+                    },
+                ],
+            }),
+        });
+    </script>
+</body>
+</html>
