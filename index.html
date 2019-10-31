@@ -13,8 +13,12 @@
     <script src="https://cdn.jsdelivr.net/npm/showdown/dist/showdown.min.js"></script>
 
     <script>
+        const OWNER = 'theoremoon';
+        const REPO = 'books';
+        const POSTS = 'posts';
+
         async function getPostList() {
-            const tree_url = await fetch('//api.github.com/repos/theoremoon/SATySFi-Online/branches/master', {
+            const tree_url = await fetch('//api.github.com/repos/' +  OWNER + '/' + REPO + '/branches/master', {
                 mode: 'cors'
             })
                 .then(r => r.json())
@@ -24,13 +28,20 @@
             })
                 .then(r => r.json())
                 .then(j => j.tree)
-            const posts_dir = files.filter(f => f.path == "SATySFi")[0];
+            const posts_dir = files.filter(f => f.path == POSTS)[0];
             const posts = await fetch(posts_dir.url, {
                 mode: 'cors',
             })
                 .then(r => r.json())
                 .then(j => j.tree)
             return posts
+        }
+        async function getPost(path) {
+            const content = await fetch('posts/' + path,
+                mode: 'cors'
+            })
+                .then(r => console.log(r.text()))
+
         }
         Vue.use(VueRouter);
         let vue = new Vue({
@@ -42,10 +53,9 @@
                         component: Vue.component('post', {
                             mounted() {
                                 this.post = this.$route.params.post
-                                this.html = new showdown.Converter().makeHtml(`
-# HELLO
-content
-                                    `);
+                                getPost(this.post).then(md => {
+                                    this.html = new showdown.Converter().makeHtml(md);
+                                })
                             },
                             data() {
                                 return {
