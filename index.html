@@ -45,7 +45,7 @@
             return tree
         }
         async function getPost(path) {
-            const content = await fetch('/' +POSTS + '/' + path, {
+            const content = await fetch(POSTS + '/' + path, {
                 mode: 'cors'
             })
                 .then(r => r.text())
